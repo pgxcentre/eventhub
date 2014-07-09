@@ -8,7 +8,7 @@ import com.mongodb.{BasicDBList, DBObject}
 import net.liftweb.common._
 import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.mongodb.record.field.{MongoListField, ObjectIdRefListField, DateField, ObjectIdPk}
-import net.liftweb.record.field.{LongField, StringField}
+import net.liftweb.record.field.{BooleanField, LongField, StringField}
 
 /**
  * A generic project configuration entity. For event hub to be able to process events
@@ -58,20 +58,27 @@ class Project extends MongoRecord[Project] with ObjectIdPk[Project] with Indexed
    * List of event actions to take place on late submit
    */
   object lateSubmitAlerts extends MongoListField[Project, EventAction.Value](this) {
+
     import scala.collection.JavaConversions._
 
     override def setFromDBObject(dbo: DBObject): Box[MyType] = {
       val convertedResults = dbo.asInstanceOf[BasicDBList].toList.map {
-        case s:String => EventAction.values.find(_.toString == s)//  Some(EventAction.withName(s))
+        case s: String => EventAction.values.find(_.toString == s) //  Some(EventAction.withName(s))
         case _ => None
       }
-      if(convertedResults.contains(None))
+      if (convertedResults.contains(None))
         setBox(Failure("Error parsing database value into an Enumeration."))
       else
         setBox(Full(convertedResults.flatten)) // flatMap, collect ???
     }
   }
 
+  /**
+   * true as long as event logs are submitIntervalSec seconds apart
+   */
+  object isOnTime extends BooleanField(this) {
+    override def defaultValue = true
+  }
 
   // FIXME: move or copy eventType from EventLog ???
 }
