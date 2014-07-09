@@ -1,0 +1,63 @@
+<mongoChangeLog>
+    <changeSet changeId="2: create project for backups" author="eventhub">
+        <script>
+        db.project.insert({
+          "_id" : ObjectId("53a31b22b68e4d0d70af2183"),
+          "name" : "backupmonitor",
+          "readers" : [],
+          "endDate" : ISODate("2014-06-19T17:17:22.478Z"),
+          "writers" : [
+            ObjectId("53a0590a355b6c1f89e721a2")
+          ],
+          "submitIntervalSec" : NumberLong(30),
+          "lateSubmitAlerts" : [ "EMAIL" ],
+          "startDate" : ISODate("2014-06-19T17:17:22.470Z")
+        });
+        </script>
+    </changeSet>
+
+    <changeSet changeId="3: create settings for backups project" author="eventhub">
+        <script>
+            db.backupProjectSettings.insert({
+            "_id" : ObjectId("53a31b22b68e4d0d70af2184"),
+            "projectId" : ObjectId("53a31b22b68e4d0d70af2183"),
+            "rules" : [
+            {
+            "regex" : "^.+\\.sql$",
+            "validations" : [
+            {
+            "validationArg" : NumberLong(1),
+            "validation" : "MIN_SIZE"
+            }
+            ],
+            "filter" : "FILTER",
+            "onSuccess" : [
+            "LOG"
+            ],
+            "onFailure" : [
+            "LOG",
+            "EMAIL"
+            ]
+            },
+            {
+            "regex" : "^.+\\.sql$",
+            "validations" : [
+            {
+            "validationArg" : NumberLong(1),
+            "validation" : "COUNT"
+            }
+            ],
+            "filter" : "FILTER",
+            "onSuccess" : [
+            "LOG"
+            ],
+            "onFailure" : [
+            "LOG",
+            "EMAIL"
+            ]
+            }
+            ]
+            });
+        </script>
+    </changeSet>
+</mongoChangeLog>

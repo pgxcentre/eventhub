@@ -1,0 +1,16 @@
+
+// Default MongoDB database. This can be changed for tests or by
+// overriding props cmd args at runtime.
+// See test utils traits that assist with DB initialization and with swapping it off with Fongo.
+mongo.host=127.0.0.1
+mongo.port=27017
+mongo.dbname=eventhub
+
+// Mail agent/server to use for sending emails
+mail.smtp.host=127.0.0.1
+mail.smtp.user=
+mail.smtp.pass=
+mail.smtp.port=25
+mail.smtp.starttls.enable=false
+mail.smtp.auth=true
+mail.smtp.connectiontimeout=30000

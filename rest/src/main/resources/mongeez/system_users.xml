@@ -1,0 +1,19 @@
+<mongoChangeLog>
+    <changeSet changeId="1: set default system users" author="eventhub">
+        <script>
+            var users = [
+              {
+                "_id": ObjectId("53a0590a355b6c1f89e721a2"),
+                "name": "pgxbackup",
+                "apiKey": "eR8rYKjT5bjWnWhTdvX6hrD+p271BpA3glk4lCkaCmQ="
+              },
+              {
+                "_id": ObjectId("53a0590a355b6c1f89e721a3"),
+                "name": "resourcemonitor",
+                "apiKey": "eR8rYKjT5bjWnWhTdvX6hrD+p271BpA3glk4lCkaCmQ="
+              }
+            ];
+            db.user.insert(users);
+        </script>
+    </changeSet>
+</mongoChangeLog>
