@@ -1,3 +1,6 @@
+# Build Status
+[![Build Status](https://travis-ci.org/pgxcentre/eventhub.png?branch=master)](https://travis-ci.org/pgxcentre/eventhub)
+	
 # EventHub
 Event hub is a project that collects various events from clients and reacts to them
 based on a particular project is configured.
