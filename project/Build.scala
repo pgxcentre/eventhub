@@ -10,6 +10,7 @@ import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 import spray.revolver.RevolverPlugin._
 import sbtassembly.Plugin._
 import AssemblyKeys._
+import com.typesafe.sbt.SbtSite._
 
 object EventHubBuild extends Build {
 
@@ -99,6 +100,8 @@ object EventHubBuild extends Build {
   }
   }) ++
   Revolver.settings ++
+  site.settings ++
+  site.includeScaladoc() ++
   Seq(libraryDependencies ++=
       Dependencies.sprayWithAkka ++
       Dependencies.lift ++

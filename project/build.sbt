@@ -33,3 +33,9 @@ addSbtPlugin("io.spray" % "sbt-revolver" % "0.7.1")
 // FROM: https://github.com/sbt/sbt-assembly
 // TASKS: assembly
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.10.1")
+
+
+// SBT plugin for generating project sites
+// FROM: https://github.com/sbt/sbt-site
+// TASKS: ;make-site; previewSite; package-site
+addSbtPlugin("com.typesafe.sbt" % "sbt-site" % "0.8.1")
