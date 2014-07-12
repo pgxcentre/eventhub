@@ -1,14 +1,15 @@
 package ca.pgx.common.mixins.callback
 
-import net.liftweb.json.JsonAST.JValue
-
 /**
- * ???
+ * A generic marker trait that adds function-like behavior to enums.
+ *
+ * We have a need to lookup enums from db which represent certain actions.
+ * Once looked up a behavior mapped to the enum needs to be executed.
  */
-trait EnumeratedFunction extends Enumeration {
+trait EnumeratedFunction[T, R] extends Enumeration {
 
-  protected def functionMappings: Map[Value, Function1[JValue, Unit]]
+  // TODO: make it a partial function or document that exceptions can be thrown
+  protected def functionMappings: Map[Value, Function1[T, R]]
 
-  def apply(enum: Value, arg: JValue): Unit =
-    functionMappings.getOrElse(enum, (arg: JValue) => ())(arg)
+  def apply(enum: Value, arg: T): R
 }

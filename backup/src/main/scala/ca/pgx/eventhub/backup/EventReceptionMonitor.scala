@@ -55,7 +55,7 @@ object EventReceptionMonitor {
       alerts <- project.lateSubmitAlerts.valueBox
       msg <- getNotificationMessage(project)
       alert <- alerts
-      _ = EventAction(alert, JString(msg))
+      _ = EventAction(alert, msg)
     } ()
   }
 

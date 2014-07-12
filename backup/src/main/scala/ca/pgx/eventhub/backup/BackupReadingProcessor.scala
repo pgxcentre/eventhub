@@ -3,8 +3,10 @@ package ca.pgx.eventhub.backup
 import java.text.{SimpleDateFormat, DateFormat}
 import java.util.Date
 import ca.pgx.common.db.entities._
+import ca.pgx.common.events.Validators
 import ca.pgx.common.events.Validators.Validators
-import ca.pgx.common.processors.AbstractFile
+import ca.pgx.common.events.Validators.Validators
+import ca.pgx.common.processors.{Filters, AbstractFile}
 import ca.pgx.common.processors.Filters.Filters
 import net.liftweb.common._
 import net.liftweb.common.Box._
@@ -106,38 +108,20 @@ trait BackupReadingProcessor {
       case _ => SUCCESS
     }
 
+  // FIXME: put everything into for comprehension, don't throw
   def applyRule(rule: Rule, files: Traversable[AbstractFile]): ValidationResult = {
-    def getFilter: Filters =
-      rule.filter.valueBox match {
-        case Full(filter) =>
-          filter.asInstanceOf[Filters]
-        case _ =>
-          println("BAD CONFIG!!!!!!!!!!!!!! " + rule) // log it, notify admin
-          throw new IllegalStateException(s"Bad config for rule: [$rule].")
-      }
 
     def getValidator(unapplied: ValidationSetting): Validators =
-      unapplied.validation.valueBox.map(_.asInstanceOf[Validators])
+      unapplied.validation.valueBox
         .getOrElse(throw new IllegalStateException(s"Bad config for validator settings: [$unapplied]."))
 
-    // TODO: seems like I have to cast because of the way enums are implemented in Lift, maybe we can save case/any classes?
-    // check that later. If type information is preserved except for Value type then we don't need to cast.
-    // maybe if it's not available it can also be implemented.
-    val filterFunction = getFilter
-    val filteredFiles = filterFunction(rule.regex.get.r, files)
+    val filterFunction = rule.filter.get
+    val filteredFiles = Filters(filterFunction, (rule.regex.get.r -> files))
     val validators = rule.validations.get
     val validationFunction = (unapplied: ValidationSetting, files: Traversable[AbstractFile]) => {
       val func = getValidator(unapplied)
-      println("VALID SETTING: " + unapplied.validate) // VALIDATION WORKS CORRECTLY HERE!!!!!!!!!!
-      println("ARG VALUES: default" + unapplied.validationArg.defaultValue)
-      println("ARG VALUES: defaultvalbox" + unapplied.validationArg.defaultValueBox)
-      println("ARG VALUES: get" + unapplied.validationArg.get)
-      println("ARG VALUES: itself" + unapplied.validationArg)
-      println("ARG VALUES: validate" + unapplied.validationArg.validate)
-      println("ARG VALUES: validations" + unapplied.validationArg.validations)
-      val arg = unapplied.validationArg.get // TODO: this should be ok right? do I have to put everything in for compreh?
-      println("ARG ARG ???!!!!: " + arg)
-      func(arg, files)
+      val arg = unapplied.validationArg.get
+      Validators(func, (arg, files))
     }
     successOrFirstFailure(validators, validationFunction, filteredFiles)
   }
