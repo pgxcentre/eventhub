@@ -49,8 +49,8 @@ trait RestService extends HttpService with BoxMarshallers with ApiUserAuth {
                     // TODO: there might be more elegant ways in Spray dealing with Box
                     case Full((user, proj)) =>
                       val JArray(files) = reading \ "files"
-                      val msg = backup.processBackupReading(user, files, proj)
-                      complete(s"event posted SUCCESSFULLY!!!, result of processing is [$msg].")
+                      val result = backup.processBackupReading(user, files, proj)
+                      complete(result)
                     case failedAuthErr =>
                       println(failedAuthErr)
                       reject(AuthenticationFailedRejection(CredentialsRejected, Nil))

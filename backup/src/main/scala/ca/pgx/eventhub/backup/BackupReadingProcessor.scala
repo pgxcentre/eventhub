@@ -27,7 +27,7 @@ trait BackupReadingProcessor {
     override def dateFormatter = defaultLiftDateFormat // FIXME: is it a problem that it's not thread safe?
   }
 
-  def processBackupReading(user: User, reading: JArray, project: Project): String = // FIXME: return type - what shall be communicated to the client?, HTTP reject, etc, maybe use a Box
+  def processBackupReading(user: User, reading: JArray, project: Project): Box[String] =
     reading match {
       case JArray(files) =>
         val filez = files map convertToFile // TODO: check for errors, wrap in Try...
@@ -35,19 +35,19 @@ trait BackupReadingProcessor {
           case Full(_) =>
             val msg = "Backup is good"
             onSuccess(msg, user.id.get, project.id.get)
-            msg
+            Full(msg)
           case Failure(errMsg, exc, _) =>
             // save
             val msg = s"Backup is bad, reason: [$errMsg]."
             onFailure(msg, user.id.get, project.id.get)
-            msg
+            Failure(msg)
           case Empty =>
             val msg = "Backup is bad, reason: [UNKNOWN]."
             onFailure(msg, user.id.get, project.id.get)
-            msg
+            Failure(msg)
         }
       case _ =>
-        "Bad request"
+        Failure("Bad request")
     }
 
   /**
@@ -71,17 +71,16 @@ trait BackupReadingProcessor {
         .fetch()
         .headOption or
         Failure(s"Bad project configuration: project settings for project ID [$projId] not found!")
+    def validateSettings(sett: BackupProjectSettings) =
+      sett.validate match {
+        case h :: t => Failure(h.msg.toString) // FIXME: different type of failure??? - do not report to the client
+        case _ => SUCCESS
+      }
+
     for {
       settings <- getSettings
-      _ = println("VALIDATION1-settings: " + settings.validate)
-      _ = println("VALIDATION2-rules: " + settings.rules.validate + " validations: " + settings.rules.validations)
-      _ = println("VALIDATION2-rules-each: " + settings.rules.get.map(_.validate))
-      _ = println("VALIDATION3-validationsett: " + settings.rules.get.map(_.validations.validate))
-      _ = println("VALIDATION4-validationsett-each: " + settings.rules.get.map(_.validations.get.map(_.validate)))
-      rule <- settings.rules.valueBox or { // TODO: this validation might not be required since it's already done
-        println(s"Bad project settings configuration [$settings].") // log it
-        Failure("Bad project settings configuration.")
-      }
+      _ <- validateSettings(settings)
+      rule <- settings.rules.valueBox
       _ <- successOrFirstFailure(rule, applyRule, files)
     } yield ()
   }
@@ -108,25 +107,20 @@ trait BackupReadingProcessor {
       case _ => SUCCESS
     }
 
-  // FIXME: put everything into for comprehension, don't throw
   def applyRule(rule: Rule, files: Traversable[AbstractFile]): ValidationResult = {
-
-    def getValidator(unapplied: ValidationSetting): Validators =
-      unapplied.validation.valueBox
-        .getOrElse(throw new IllegalStateException(s"Bad config for validator settings: [$unapplied]."))
-
-    val filterFunction = rule.filter.get
-    val filteredFiles = Filters(filterFunction, (rule.regex.get.r -> files))
-    val validators = rule.validations.get
-    val validationFunction = (unapplied: ValidationSetting, files: Traversable[AbstractFile]) => {
-      val func = getValidator(unapplied)
+    def validationFunction(unapplied: ValidationSetting, files: Traversable[AbstractFile]) = {
+      val func = unapplied.validation.get
       val arg = unapplied.validationArg.get
       Validators(func, (arg, files))
     }
-    successOrFirstFailure(validators, validationFunction, filteredFiles)
+
+    for {
+      filterFunction <- rule.filter.valueBox
+      filteredFiles = Filters(filterFunction, (rule.regex.get.r -> files))
+      validators <- rule.validations.valueBox
+      _ <- successOrFirstFailure(validators, validationFunction, filteredFiles)
+    } yield ()
   }
-
-
 
   def onSuccess(msg: String, userId: ObjectId, projectId: ObjectId): Unit = {
     // FIXME: use one from project settings
