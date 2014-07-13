@@ -39,8 +39,6 @@ trait RestService extends HttpService with BoxMarshallers with ApiUserAuth {
         post {
           entity(as[JValue]) {
             reading =>
-              //createProjectConfig() // FIXME: remove this later, it's just for testing
-
               println("RAW DATA PARSED AS JSON: " + reading)
               extractUserCredentials(reading) match {
                 case scala.util.Success((apiUser, apiKey, project)) =>
@@ -61,69 +59,6 @@ trait RestService extends HttpService with BoxMarshallers with ApiUserAuth {
               }
           }
         }
-    } ~
-      //path("test") { // import implicit marshaller for the BOX - now using LIFT JSON support
-        get {
-          path("fullunit") {
-            complete(Full(()))
-          } ~
-            path("full") {
-              complete(Full("something"))
-            } ~
-            path("paramfail") {
-              complete(ParamFailure("msg", "PARAM"))
-            } ~
-            path("fail") {
-              complete(Failure("failerr"))
-            } ~
-            path("empty") {
-              complete(Empty)
-            }
-        }
-      //}
-
-  def createProjectConfig(): Unit = {
-    println("CREATING PROJ CONFIG")
-
-    // PROJECT
-    val projId = new ObjectId()
-    Project.createRecord
-      .id(projId)
-      .name("backupmonitor")
-      .startDate(DateTime.now.toDate)
-      .writers(new ObjectId("53a0590a355b6c1f89e721a2") :: Nil)
-      .save
-
-    // VALIDATIONS
-    val sizeValidation = ValidationSetting.createRecord
-      .validation(Validators.MIN_SIZE)
-      .validationArg(1)
-    val countValidation = ValidationSetting.createRecord
-      .validation(Validators.COUNT)
-      .validationArg(1)
-
-    // RULE
-    val mysqlDumpRegex = """^.+\.sql$"""
-    val sizeRule = Rule.createRecord
-      .filter(Filters.FILTER)
-      .regex(mysqlDumpRegex)
-      .validations(sizeValidation :: Nil)
-      .onSuccess(EventAction.LOG :: Nil)
-      .onFailure(EventAction.LOG :: EventAction.EMAIL :: Nil)
-    val countRule = Rule.createRecord
-      .filter(Filters.FILTER)
-      .regex(mysqlDumpRegex)
-      .validations(countValidation :: Nil)
-      .onSuccess(EventAction.LOG :: Nil)
-      .onFailure(EventAction.LOG :: EventAction.EMAIL :: Nil)
-
-    // PROJECT SETTINGS
-    BackupProjectSettings.createRecord
-      .projectId(projId)
-      .rules(sizeRule :: countRule :: Nil)
-      .save
-    // more fields later
-  }
-
+    }
 
 }

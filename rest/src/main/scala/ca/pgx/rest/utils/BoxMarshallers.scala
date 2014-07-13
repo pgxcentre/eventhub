@@ -84,24 +84,3 @@ trait BoxMarshallers extends LiftJsonSupport {
   val failedResponse = response(FAILED)
 
 }
-
-// FIXME: compare to LiftJsonSupport - which one to use? examples:
-//
-//# curl localhost:8090/fullunit
-//{"value":{}}#
-//#
-//# curl localhost:8090/full
-//{"value":"something"}#
-//#
-//# curl localhost:8090/paramfail
-//{"param":"PARAM"}#
-//#
-//# curl localhost:8090/fail
-//{"msg":"failerr","exception":{},"chain":{}}#
-//#
-//# curl localhost:8090/empty
-//{}#
-//#
-
-//https://github.com/spray/spray/blob/master/spray-httpx/src/test/scala/spray/httpx/marshalling/MetaMarshallersSpec.scala
-//https://github.com/spray/spray/blob/master/spray-httpx/src/main/scala/spray/httpx/marshalling/MetaMarshallers.scala
