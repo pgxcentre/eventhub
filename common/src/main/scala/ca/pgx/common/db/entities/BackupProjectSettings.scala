@@ -40,6 +40,18 @@ with IndexedRecord[BackupProjectSettings] {
      */
     override def validations = ((elems: ValueType) => elems.map(_.validate).flatten) :: super.validations
   }
+
+  /**
+   * List of actions that will be perfomed on successful operation. Usually this would
+   * be empty, but logging and emailing can be enabled for debugging.
+   */
+  object onSuccess extends MongoListField[BackupProjectSettings, EventAction](this) // FIXME: add custom serialization to all MongoListField fields - throws otherwise
+
+  /**
+   * List of actions that will be perfomed on failed operation. Usually this would
+   * include logging and emailing.
+   */
+  object onFailure extends MongoListField[BackupProjectSettings, EventAction](this)
 }
 
 object BackupProjectSettings extends BackupProjectSettings with InjectableMetaRecord[BackupProjectSettings] {

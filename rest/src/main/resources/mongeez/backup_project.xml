@@ -56,6 +56,13 @@
             "EMAIL"
             ]
             }
+            ],
+            "onSuccess" : [
+            "LOG"
+            ],
+            "onFailure" : [
+            "LOG",
+            "EMAIL"
             ]
             });
         </script>

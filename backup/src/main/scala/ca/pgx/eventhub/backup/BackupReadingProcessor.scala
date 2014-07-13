@@ -3,7 +3,7 @@ package ca.pgx.eventhub.backup
 import java.text.{SimpleDateFormat, DateFormat}
 import java.util.Date
 import ca.pgx.common.db.entities._
-import ca.pgx.common.events.Validators
+import ca.pgx.common.events.{EventAction, Validators}
 import ca.pgx.common.events.Validators.Validators
 import ca.pgx.common.events.Validators.Validators
 import ca.pgx.common.processors.{Filters, AbstractFile}
@@ -27,28 +27,50 @@ trait BackupReadingProcessor {
     override def dateFormatter = defaultLiftDateFormat // FIXME: is it a problem that it's not thread safe?
   }
 
-  def processBackupReading(user: User, reading: JArray, project: Project): Box[String] =
-    reading match {
-      case JArray(files) =>
-        val filez = files map convertToFile // TODO: check for errors, wrap in Try...
-        validateBackupReading(filez, project) match {
-          case Full(_) =>
-            val msg = "Backup is good"
-            onSuccess(msg, user.id.get, project.id.get)
-            Full(msg)
-          case Failure(errMsg, exc, _) =>
-            // save
-            val msg = s"Backup is bad, reason: [$errMsg]."
-            onFailure(msg, user.id.get, project.id.get)
-            Failure(msg)
-          case Empty =>
-            val msg = "Backup is bad, reason: [UNKNOWN]."
-            onFailure(msg, user.id.get, project.id.get)
-            Failure(msg)
-        }
-      case _ =>
-        Failure("Bad request")
+  def processBackupReading(user: User, reading: JArray, project: Project): ValidationResult = {
+    def convertReadingFormat =
+      scala.util.Try {
+        reading.arr map convertToFile
+      } match {
+        case scala.util.Success(files) => Full(files)
+        case scala.util.Failure(e) => Failure("Bad request format")
+      }
+
+    def processResult(result: ValidationResult, settings: BackupProjectSettings, userId: ObjectId): Unit = {
+      val logEntry = EventLog.createRecord
+        .event(BACKUP)
+        .userId(userId)
+        .projectId(settings.projectId.get)
+        .when(DateTime.now.toDate)
+
+      result match {
+        case SUCCESS =>
+          logEntry.alertRaised(false)
+            .comment("Successful")
+            .actionsTaken(settings.onSuccess.get)
+            .save
+          settings.onSuccess.get foreach {
+            EventAction(_, "Event was submitted successfully")
+          }
+        case err =>
+          val msg = (err ?~ "").toString //???? FIXME: extract message properly via case match
+          logEntry.alertRaised(true)
+            .comment(msg)
+            .actionsTaken(settings.onFailure.get)
+            .save
+          settings.onFailure.get foreach {
+            EventAction(_, msg)
+          }
+      }
     }
+
+    for {
+      convFiles <- convertReadingFormat
+      backupSettings <- getSettings(project.id.get)
+      result = validateBackupReading(convFiles, project, backupSettings)
+      _ = processResult(result, backupSettings, user.id.get)
+    } yield result
+  }
 
   /**
    * Expects fields with specific names and formats and converts JSON to a typesafe case class representation.
@@ -63,27 +85,28 @@ trait BackupReadingProcessor {
     processed.extract[AbstractFile]
   }
 
-  def validateBackupReading(files: Traversable[AbstractFile], project: Project): ValidationResult = {
-    val projId = project.id.get
-    def getSettings =
-      BackupProjectSettings.where(_.projectId eqs projId)
-        .limit(1)
-        .fetch()
-        .headOption or
-        Failure(s"Bad project configuration: project settings for project ID [$projId] not found!")
+  def getSettings(projectId: ObjectId) = {
+    val settings = BackupProjectSettings.where(_.projectId eqs projectId)
+      .limit(1)
+      .fetch()
+      .headOption or
+      Failure(s"Bad project configuration: project settings for project ID [$projectId] not found!")
     def validateSettings(sett: BackupProjectSettings) =
       sett.validate match {
         case h :: t => Failure(h.msg.toString) // FIXME: different type of failure??? - do not report to the client
         case _ => SUCCESS
       }
-
     for {
-      settings <- getSettings
-      _ <- validateSettings(settings)
+      sett <- settings
+      _ <- validateSettings(sett)
+    } yield sett
+  }
+
+  def validateBackupReading(files: Traversable[AbstractFile], project: Project, settings: BackupProjectSettings): ValidationResult =
+    for {
       rule <- settings.rules.valueBox
       _ <- successOrFirstFailure(rule, applyRule, files)
     } yield ()
-  }
 
   // TODO: move this to common proj like collection utils or smth:
   /**
@@ -120,33 +143,6 @@ trait BackupReadingProcessor {
       validators <- rule.validations.valueBox
       _ <- successOrFirstFailure(validators, validationFunction, filteredFiles)
     } yield ()
-  }
-
-  def onSuccess(msg: String, userId: ObjectId, projectId: ObjectId): Unit = {
-    // FIXME: use one from project settings
-    println("SUCCESS !!! SUCCESS !!! SUCCESS !!! " + msg)
-    EventLog.createRecord
-      .event(BACKUP)
-      .userId(userId)
-      .projectId(projectId)
-      .when(DateTime.now.toDate)
-      .alertRaised(false)
-      .actionsTaken(LOG :: EMAIL :: Nil)
-      .comment(msg)
-      .save
-  }
-
-  def onFailure(msg: String, userId: ObjectId, projectId: ObjectId): Unit = {
-    println("FAILURE !!! FAILURE !!! FAILURE !!! " + msg)
-    EventLog.createRecord
-      .event(BACKUP)
-      .userId(userId)
-      .projectId(projectId)
-      .when(DateTime.now.toDate)
-      .alertRaised(true)
-      .actionsTaken(LOG :: EMAIL :: Nil)
-      .comment(msg)
-      .save
   }
 
 }
