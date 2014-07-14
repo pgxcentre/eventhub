@@ -1,12 +1,12 @@
 package ca.pgx.common.db.entities
 
 import ca.pgx.common.db.collections.CollectionNames
-import ca.pgx.common.db.helpers.InjectableMetaRecord
+import ca.pgx.common.db.helpers.{MongoEnumListField, InjectableMetaRecord}
 import ca.pgx.common.events.EventAction.EventAction
-import ca.pgx.common.events.EventType
+import ca.pgx.common.events.{EventAction, EventType}
 import com.foursquare.index.IndexedRecord
 import net.liftweb.mongodb.record.MongoRecord
-import net.liftweb.mongodb.record.field.{DateField, MongoListField, ObjectIdPk, ObjectIdRefField}
+import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk, ObjectIdRefField}
 import net.liftweb.record.field.{EnumNameField, BooleanField, EnumField, StringField}
 
 /**
@@ -50,7 +50,7 @@ class EventLog extends MongoRecord[EventLog] with ObjectIdPk[EventLog] with Inde
   /**
    * A list of actions taken in the order of processing.
    */
-  object actionsTaken extends MongoListField[EventLog, EventAction](this)
+  object actionsTaken extends MongoEnumListField[EventLog, EventAction.type](this, EventAction)
 
   /**
    * Optional comment written by Processors. Might contain commands executed, human readable text, etc.

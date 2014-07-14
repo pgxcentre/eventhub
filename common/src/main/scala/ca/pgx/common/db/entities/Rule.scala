@@ -1,10 +1,11 @@
 package ca.pgx.common.db.entities
 
-import ca.pgx.common.db.helpers.CustomBsonMetaRecord
+import ca.pgx.common.db.helpers.{MongoEnumListField, CustomBsonMetaRecord}
+import ca.pgx.common.events.EventAction
 import ca.pgx.common.events.EventAction._
 import ca.pgx.common.processors.Filters
 import net.liftweb.mongodb.record.BsonRecord
-import net.liftweb.mongodb.record.field.{MongoListField, BsonRecordListField}
+import net.liftweb.mongodb.record.field.BsonRecordListField
 import net.liftweb.record.field.{StringField, EnumNameField}
 
 /**
@@ -41,13 +42,13 @@ class Rule extends BsonRecord[Rule] {
    * List of actions that will be perfomed on successful operation. Usually this would
    * be empty, but logging and emailing can be enabled for debugging.
    */
-  object onSuccess extends MongoListField[Rule, EventAction](this)
+  object onSuccess extends MongoEnumListField[Rule, EventAction.type](this, EventAction)
 
   /**
    * List of actions that will be perfomed on failed operation. Usually this would
    * include logging and emailing.
    */
-  object onFailure extends MongoListField[Rule, EventAction](this)
+  object onFailure extends MongoEnumListField[Rule, EventAction.type](this, EventAction)
 
 }
 

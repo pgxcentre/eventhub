@@ -1,13 +1,12 @@
 package ca.pgx.common.db.entities
 
 import ca.pgx.common.db.collections.CollectionNames
-import ca.pgx.common.db.helpers.{CustomBsonMetaRecord, InjectableMetaRecord}
+import ca.pgx.common.db.helpers.{MongoEnumListField, CustomBsonMetaRecord, InjectableMetaRecord}
 import ca.pgx.common.events.{Validators, EventAction}
-import ca.pgx.common.events.EventAction.EventAction
 import ca.pgx.common.processors.{AbstractFile, Filters}
 import com.foursquare.index.IndexedRecord
 import net.liftweb.mongodb.record.{BsonRecord, MongoRecord}
-import net.liftweb.mongodb.record.field.{ObjectIdRefField, MongoListField, BsonRecordListField, ObjectIdPk}
+import net.liftweb.mongodb.record.field.{ObjectIdRefField, BsonRecordListField, ObjectIdPk}
 import net.liftweb.record.field.{EnumNameField, LongField, EnumField, StringField}
 import net.liftweb.util.FieldError
 
@@ -45,13 +44,13 @@ with IndexedRecord[BackupProjectSettings] {
    * List of actions that will be perfomed on successful operation. Usually this would
    * be empty, but logging and emailing can be enabled for debugging.
    */
-  object onSuccess extends MongoListField[BackupProjectSettings, EventAction](this) // FIXME: add custom serialization to all MongoListField fields - throws otherwise
+  object onSuccess extends MongoEnumListField[BackupProjectSettings, EventAction.type](this, EventAction)
 
   /**
    * List of actions that will be perfomed on failed operation. Usually this would
    * include logging and emailing.
    */
-  object onFailure extends MongoListField[BackupProjectSettings, EventAction](this)
+  object onFailure extends MongoEnumListField[BackupProjectSettings, EventAction.type](this, EventAction)
 }
 
 object BackupProjectSettings extends BackupProjectSettings with InjectableMetaRecord[BackupProjectSettings] {

@@ -1,13 +1,13 @@
 package ca.pgx.common.db.entities
 
 import ca.pgx.common.db.collections.CollectionNames
-import ca.pgx.common.db.helpers.InjectableMetaRecord
+import ca.pgx.common.db.helpers.{MongoEnumListField, InjectableMetaRecord}
 import ca.pgx.common.events.EventAction
 import com.foursquare.index.IndexedRecord
 import com.mongodb.{BasicDBList, DBObject}
 import net.liftweb.common._
 import net.liftweb.mongodb.record.MongoRecord
-import net.liftweb.mongodb.record.field.{MongoListField, ObjectIdRefListField, DateField, ObjectIdPk}
+import net.liftweb.mongodb.record.field.{ObjectIdRefListField, DateField, ObjectIdPk}
 import net.liftweb.record.field.{BooleanField, LongField, StringField}
 
 /**
@@ -57,21 +57,7 @@ class Project extends MongoRecord[Project] with ObjectIdPk[Project] with Indexed
   /**
    * List of event actions to take place on late submit
    */
-  object lateSubmitAlerts extends MongoListField[Project, EventAction.Value](this) {
-
-    import scala.collection.JavaConversions._
-
-    override def setFromDBObject(dbo: DBObject): Box[MyType] = {
-      val convertedResults = dbo.asInstanceOf[BasicDBList].toList.map {
-        case s: String => EventAction.values.find(_.toString == s) //  Some(EventAction.withName(s))
-        case _ => None
-      }
-      if (convertedResults.contains(None))
-        setBox(Failure("Error parsing database value into an Enumeration."))
-      else
-        setBox(Full(convertedResults.flatten)) // flatMap, collect ???
-    }
-  }
+  object lateSubmitAlerts extends MongoEnumListField[Project, EventAction.type](this, EventAction)
 
   /**
    * true as long as event logs are submitIntervalSec seconds apart
