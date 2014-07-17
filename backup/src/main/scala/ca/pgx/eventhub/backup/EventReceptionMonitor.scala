@@ -9,11 +9,10 @@ import com.foursquare.rogue.LiftRogue._
 import net.liftweb.common.Box
 
 /**
- * TODO: ???
+ * A scheduled task that runs periodically and checks whether events are being submitted on time.
+ * If not an alert is raised.
  */
 object EventReceptionMonitor {
-
-  println(EventAction.values)
 
   def checkEventsAreOnSchedule(): Unit = {
     import com.github.nscala_time.time.Imports._

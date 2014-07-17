@@ -18,6 +18,7 @@ import ca.pgx.common.events.EventAction._
 import org.bson.types.ObjectId
 import com.foursquare.rogue.LiftRogue._
 import ca.pgx.common._
+import ca.pgx.common.collections.CollectionHelpers._
 
 trait BackupReadingProcessor {
 
@@ -53,7 +54,7 @@ trait BackupReadingProcessor {
             EventAction(_, "Event was submitted successfully")
           }
         case err =>
-          val msg = (err ?~ "").toString //???? FIXME: extract message properly via case match
+          val msg = getErrorMessage(err ?~ "Unknown failure has occured")
           logEntry.alertRaised(true)
             .comment(msg)
             .actionsTaken(settings.onFailure.get)
@@ -104,31 +105,9 @@ trait BackupReadingProcessor {
 
   def validateBackupReading(files: Traversable[AbstractFile], project: Project, settings: BackupProjectSettings): ValidationResult =
     for {
-      rule <- settings.rules.valueBox
-      _ <- successOrFirstFailure(rule, applyRule, files)
+      rules <- settings.rules.valueBox ?~ "Internal project configuration error"
+      _ <- successOrFirstFailure(rules, applyRule, files)
     } yield ()
-
-  // TODO: move this to common proj like collection utils or smth:
-  /**
-   * Evaluates each receiver by applying transform on it with provided data. Returns first failure
-   * encountered or success if no failures observed.
-   * @param receivers
-   * @param transform
-   * @param data
-   * @tparam T
-   * @tparam U
-   * @return
-   */
-  def successOrFirstFailure[T, U](receivers: Traversable[T], transform: (T, U) => ValidationResult, data: U): ValidationResult =
-    receivers match {
-      case h :: t =>
-        val result = transform(h, data)
-        if (result.isDefined)
-          successOrFirstFailure(t, transform, data)
-        else
-          result
-      case _ => SUCCESS
-    }
 
   def applyRule(rule: Rule, files: Traversable[AbstractFile]): ValidationResult = {
     def validationFunction(unapplied: ValidationSetting, files: Traversable[AbstractFile]) = {
