@@ -24,7 +24,7 @@ Install these applications on your dev machine in order to be able to build the 
 SBT is a build tool that downloads source code dependencies, compiles code, runs tests,
 generates scaladocs, and produces executables.
 
-Start up SBT:
+Start up SBT from unix shell:
 
     > sbt
 
@@ -32,7 +32,7 @@ or if it's not on a PATH:
 
     > ./sbt
 
-In sbt shell type (note semicolons):
+In SBT shell type (note semicolons):
 
     ;clean; assembly
 
